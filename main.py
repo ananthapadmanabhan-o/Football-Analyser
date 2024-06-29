@@ -6,15 +6,18 @@ import cv2 as cv
 
 def main():
 
-    video_frames = read_video('input_video/video_01.mp4')
+    video_frames = read_video('input_video/video-02.mp4')
 
-    tracker = Tracker('./models/best.pt')
+    tracker = Tracker('models/best.pt')
 
-    tracks = tracker.get_object_tracker(video_frames,
+    tracks = tracker.get_object_tracks(video_frames,
                                         read_from_stub=True,
-                                        stub_path='./stub/tracks.pkl')
+                                        stub_path='stub/tracks.pkl')
+    
 
-    # save_video(video_frames,'output_video/output_video_01.avi')
+    output_video_frames = tracker.draw_annotations(video_frames,tracks)
+
+    save_video(output_video_frames,'output_video/output_video_01.avi')
 
 
     # model = YOLO('./models/best.pt')
