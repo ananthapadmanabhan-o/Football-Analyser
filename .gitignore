@@ -165,3 +165,5 @@ models/*
 
 input_video/*
 output_video/*
+runs/*
+stub/*
