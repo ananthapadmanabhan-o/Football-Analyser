@@ -11,7 +11,7 @@ def main():
     tracker = Tracker('models/best.pt')
 
     tracks = tracker.get_object_tracks(video_frames,
-                                        read_from_stub=True,
+                                        read_from_stub=False,
                                         stub_path='stub/tracks.pkl')
     
 

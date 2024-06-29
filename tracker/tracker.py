@@ -4,7 +4,8 @@ import os
 import pickle
 from utils import bbox_center,bbox_width
 import cv2
-
+from tqdm import tqdm
+import numpy as np 
 
 class Tracker:
     
@@ -16,7 +17,7 @@ class Tracker:
         batch_size = 20
         detections = []
 
-        for i in range(0,len(frames),batch_size):
+        for i in tqdm(range(0,len(frames),batch_size)):
             detection_batch = self.model.predict(frames[i:i+batch_size],conf=0.1)
             detections += detection_batch
         
@@ -40,7 +41,7 @@ class Tracker:
             'ball':[]
         }
 
-        for frame_num, detection in enumerate(detections):
+        for frame_num, detection in enumerate(tqdm(detections)):
             
             cls_names = detection.names
             cls_names_inv = {v:k for k,v in cls_names.items()}
@@ -73,6 +74,7 @@ class Tracker:
 
                 if cls_id == cls_names_inv['referee']:
                     tracks['referees'][frame_num][track_id] = {'bbox':bbox}
+                
                 
             for frame_detection in detection_supervision:
                 bbox = frame_detection[0].tolist()
@@ -110,18 +112,66 @@ class Tracker:
             lineType=cv2.LINE_4
         )
 
+        rectangle_width = 40
+        rectangle_height = 20
+
+        x1_rect = x_center - rectangle_width//2
+        x2_rect = x_center + rectangle_width//2
+
+        y1_rect = (y2 - rectangle_height//2) + 15
+        y2_rect = (y2 + rectangle_height//2) + 15
+
+
+        x_txt = (x1_rect+x2_rect-15)//2
+        y_txt = (y1_rect+y2_rect+15)//2
+
+        if track_id is not None:
+
+            cv2.rectangle(
+                frame,
+                (int(x1_rect),int(y1_rect)),
+                (int(x2_rect),int(y2_rect)),
+                color,
+                cv2.FILLED
+            )
+            
+            cv2.putText(
+                frame,
+                f'{track_id}',
+                (int(x_txt),int(y_txt)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0,0,0),
+                2
+            )
+
+
         return frame
 
  
+    def draw_traingle(self,frame,bbox,color):
+        
+        y = int(bbox[1])
+        x_center,y_center = bbox_center(bbox)
 
+        traingle_points = np.array([
+            [x_center,y],
+            [x_center-10,y-20],
+            [x_center+10,y-20]
+        ])
 
+        cv2.drawContours(frame,[traingle_points],0,color,cv2.FILLED)
+        cv2.drawContours(frame,[traingle_points],0,(0,0,0),2)
+
+        return frame
+        
 
 
     def draw_annotations(self,video_frames,tracks):
         output_video_frames = []
 
         
-        for frame_num, frame in enumerate(video_frames):
+        for frame_num, frame in enumerate(tqdm(video_frames)):
 
             frame = frame.copy()
 
@@ -131,7 +181,13 @@ class Tracker:
 
             for track_id, player in player_dict.items():
                 frame = self.draw_ellipse(frame,player['bbox'],(0,0,255),track_id)
-        
+
+            for track_id, referee in referee_dict.items():
+                frame = self.draw_ellipse(frame,referee['bbox'],(0,255,255),track_id)
+
+            for track_id, ball in ball_dict.items():
+                frame = self.draw_traingle(frame,ball['bbox'],(0,255,0))
+
             output_video_frames.append(frame)
 
         return output_video_frames
